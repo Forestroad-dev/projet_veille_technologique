@@ -2,7 +2,10 @@ import ProductItem from '@/components/products/ProductItem'
 import { Rating } from '@/components/products/Rating'
 import productServices from '@/lib/services/productService'
 import Link from 'next/link'
-
+import recommendedProducts from '@/app/api/recommendation'
+import React, { useState, useEffect } from 'react';
+import { Product } from '@/lib/models/ProductModel'
+import { useClient } from 'next/client';
 const sortOrders = ['newest', 'lowest', 'highest', 'rating']
 const prices = [
   {
@@ -71,6 +74,25 @@ export default async function SearchPage({
     page: string
   }
 }) {
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    // Appel du gestionnaire (handler) avec le terme de recherche
+    const fetchRecommendedProducts = async () => {
+      try {
+        const response = await fetch(`/api/recommendation?search=${encodeURIComponent(q)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch recommended products');
+        }
+        const { products } = await response.json();
+        setRecommendedProducts(products);
+      } catch (error) {
+        console.error('Error fetching recommended products:', error);
+      }
+    };
+
+    fetchRecommendedProducts();
+  }, [q]);
   const getFilterUrl = ({
     c,
     s,
@@ -103,10 +125,12 @@ export default async function SearchPage({
   })
   return (
     <div className="grid md:grid-cols-5 md:gap-5">
+      {/* Sidebar pour les filtres de recherche */}
       <div>
         <div className="text-xl pt-3">Department</div>
         <div>
           <ul>
+            {/* Filtrer par catégorie */}
             <li>
               <Link
                 className={`link link-hover ${
@@ -134,6 +158,7 @@ export default async function SearchPage({
         <div>
           <div className="text-xl pt-3">Price</div>
           <ul>
+            {/* Filtrer par prix */}
             <li>
               <Link
                 className={`link link-hover ${
@@ -161,6 +186,7 @@ export default async function SearchPage({
         <div>
           <div className="text-xl pt-3">Customer Review</div>
           <ul>
+            {/* Filtrer par évaluation du client */}
             <li>
               <Link
                 href={getFilterUrl({ r: 'all' })}
@@ -186,15 +212,19 @@ export default async function SearchPage({
           </ul>
         </div>
       </div>
+      {/* Contenu principal */}
       <div className="md:col-span-4">
+        {/* Barre de recherche et options de tri */}
         <div className="flex items-center justify-between  py-4">
           <div className="flex items-center">
+            {/* Affichage du nombre de résultats et des filtres sélectionnés */}
             {products.length === 0 ? 'No' : countProducts} Results
             {q !== 'all' && q !== '' && ' : ' + q}
             {category !== 'all' && ' : ' + category}
             {price !== 'all' && ' : Price ' + price}
             {rating !== 'all' && ' : Rating ' + rating + ' & up'}
             &nbsp;
+            {/* Bouton pour effacer les filtres */}
             {(q !== 'all' && q !== '') ||
             category !== 'all' ||
             rating !== 'all' ||
@@ -204,6 +234,7 @@ export default async function SearchPage({
               </Link>
             ) : null}
           </div>
+          {/* Options de tri */}
           <div>
             Sort by{' '}
             {sortOrders.map((s) => (
@@ -219,29 +250,50 @@ export default async function SearchPage({
             ))}
           </div>
         </div>
-
-        <div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3  ">
-            {products.map((product) => (
-              <ProductItem key={product.slug} product={product} />
+        {/* Affichage des produits de recherche */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {products.map((product) => (
+            <ProductItem key={product.slug} product={product} />
+          ))}
+        </div>
+        {/* Pagination */}
+        <div className="join">
+          {products.length > 0 &&
+            Array.from(Array(pages).keys()).map((p) => (
+              <Link
+                key={p}
+                className={`join-item btn ${
+                  Number(page) === p + 1 ? 'btn-active' : ''
+                } `}
+                href={getFilterUrl({ pg: `${p + 1}` })}
+              >
+                {p + 1}
+              </Link>
             ))}
-          </div>
-          <div className="join">
-            {products.length > 0 &&
-              Array.from(Array(pages).keys()).map((p) => (
-                <Link
-                  key={p}
-                  className={`join-item btn ${
-                    Number(page) === p + 1 ? 'btn-active' : ''
-                  } `}
-                  href={getFilterUrl({ pg: `${p + 1}` })}
-                >
-                  {p + 1}
-                </Link>
-              ))}
-          </div>
+        </div>
+          {/* Afficher les produits recommandés */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {recommendedProducts.map((product) => (
+            <ProductItem key={product.slug} product={product} />
+          ))}
+        </div>   
+        {/* Pagination */}
+        <div className="join">
+          {products.length > 0 &&
+            Array.from(Array(pages).keys()).map((p) => (
+              <Link
+                key={p}
+                className={`join-item btn ${
+                  Number(page) === p + 1 ? 'btn-active' : ''
+                } `}
+                href={getFilterUrl({ pg: `${p + 1}` })}
+              >
+                {p + 1}
+              </Link>
+            ))}
         </div>
       </div>
     </div>
   )
+  
 }

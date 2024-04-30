@@ -1,3 +1,4 @@
+import json
 import pickle
 import pandas as pd
 import numpy as np
@@ -11,6 +12,14 @@ collection = db['products']
 # Charger le modèle pré-entraîné
 with open('modele_v2.pkl', 'rb') as f:
     similarity_vectors = pickle.load(f)
+
+# Convertir le vecteur de similarité en JSON
+similarity_json = similarity_vectors.tolist()
+
+# Écrire le JSON dans un fichier JavaScript
+with open('similarite_vectors.js', 'w') as f:
+    f.write('const similarityVectors = ')
+    json.dump(similarity_json, f)
 
 # Charger le DataFrame 'data'
 # (Assurez-vous que le chemin d'accès au fichier est correct)
