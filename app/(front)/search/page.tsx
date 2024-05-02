@@ -2,6 +2,10 @@ import ProductItem from '@/components/products/ProductItem'
 import { Rating } from '@/components/products/Rating'
 import productServices from '@/lib/services/productService'
 import Link from 'next/link'
+import { Product } from '@/lib/models/ProductModel'
+import axios from 'axios';
+
+
 
 const sortOrders = ['newest', 'lowest', 'highest', 'rating']
 const prices = [
@@ -71,6 +75,21 @@ export default async function SearchPage({
     page: string
   }
 }) {
+
+
+  async function fetchRecommendations(query: string): Promise<Product[]> {
+    try {
+      const response = await axios.post('http://localhost:8000/recommender', {
+        query: query,
+      });
+      return response.data || []; // Si la réponse est null ou undefined, renvoyer un tableau vide
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      return []; // En cas d'erreur, renvoyer un tableau vide
+    }
+  }
+  const recommendations: Product[] = await fetchRecommendations(q);
+
   const getFilterUrl = ({
     c,
     s,
@@ -240,6 +259,34 @@ export default async function SearchPage({
                 </Link>
               ))}
           </div>
+                    
+          {/* Afficher les produits recommandés */}          
+          <h2>Recommended Products</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {recommendations.map((product) => (
+              <ProductItem key={product.slug} product={product} />
+            ))}
+          </div>
+          {/* Pagination pour les produits recommandés */}
+          <div className="join">
+            {recommendations && recommendations.length > 0 ? (
+              Array.from(Array(pages).keys()).map((p) => (
+                <Link
+                  key={p}
+                  className={`join-item btn ${
+                    Number(page) === p + 1 ? 'btn-active' : ''
+                  } `}
+                  href={getFilterUrl({ pg: `${p + 1}` })}
+                >
+                  {p + 1}
+                </Link>
+              ))
+            ) : (
+              <div>No recommended products found.</div>
+            )}
+          </div>
+
+
         </div>
       </div>
     </div>

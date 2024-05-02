@@ -3,10 +3,17 @@ import pickle
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
+from fastapi import FastAPI
+from pydantic import BaseModel
 
+app = FastAPI()
 # Connexion à MongoDB
+
+class SearchQuery(BaseModel):
+    query: str
+
 client = MongoClient('localhost', 27017)
-db = client['next-amazona-v2']
+db = client['test']
 collection = db['products']
 
 # Charger le modèle pré-entraîné
@@ -31,20 +38,37 @@ data = pd.DataFrame(list(collection.find()))
 # Suppression des lignes avec des valeurs manquantes
 data = data.dropna(subset=['category', 'brand', 'rating', 'description'])
 
+
+# Route POST pour la fonction de recommandation
+@app.post("/recommender")
+
 # Développement du moteur de recommandation
-def recommender(search):
-    matching_products = data[data['name'].str.contains(search, case=False, na=False)]
-    
+def recommend_products(query_data: SearchQuery):
+    query = query_data.query
+
+    # Développement du moteur de recommandation
+    matching_products = data[data['name'].str.contains(query, case=False, na=False)]
+
     if not matching_products.empty:
         idx = matching_products.index[0]
         similar_products_indices = np.argsort(similarity_vectors[idx])[::-1][1:6]
-        
-        # Afficher seulement les colonnes 'product_id', 'name' et 'slug'
-        return data.iloc[similar_products_indices][['name', 'category','price','rating']]
-        #return data.iloc[similar_products_indices]
 
+        # Créer un tableau de produits au format JSON
+        recommended_products = []
+        for idx in similar_products_indices:
+            product = {
+                "name": data.iloc[idx]['name'],
+                "category": data.iloc[idx]['category'],
+                "price": data.iloc[idx]['price'],
+                "rating": data.iloc[idx]['rating']
+            }
+            recommended_products.append(product)
+
+        # Renvoyer la réponse au format JSON
+        return recommended_products
     else:
-        return "Aucun produit trouvé dans la base de données correspondant à votre recherche. Veuillez essayer avec d'autres termes."
+        # Si aucun produit correspondant n'est trouvé, renvoyer un tableau vide
+        return []
 
 # Appel de la fonction recommender
-print(recommender('shirt'))
+print(recommend_products(SearchQuery(query='shirt')))
