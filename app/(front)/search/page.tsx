@@ -22,6 +22,20 @@ const prices = [
     value: '201-1000',
   },
 ]
+function sortRecommendations(recommendations: Product[], sort: string): Product[] {
+  switch (sort) {
+    case 'newest':
+      return recommendations; // Aucun tri nécessaire
+    case 'lowest':
+      return recommendations.sort((a, b) => a.price - b.price);
+    case 'highest':
+      return recommendations.sort((a, b) => b.price - a.price);
+    case 'rating':
+      return recommendations.sort((a, b) => b.rating - a.rating);
+    default:
+      return recommendations; // Par défaut, aucun tri
+  }
+}
 
 const ratings = [5, 4, 3, 2, 1]
 
@@ -81,6 +95,11 @@ export default async function SearchPage({
     try {
       const response = await axios.post('http://localhost:8000/recommender', {
         query: query,
+        category: category, // Ajoutez les paramètres de filtre à la requête POST
+        price: price,
+        rating: rating,
+        sort: sort,
+        page: page,
       });
       return response.data || []; // Si la réponse est null ou undefined, renvoyer un tableau vide
     } catch (error) {
@@ -89,6 +108,7 @@ export default async function SearchPage({
     }
   }
   const recommendations: Product[] = await fetchRecommendations(q);
+  const sortedRecommendations = sortRecommendations(recommendations, sort); // Tri des recommandations
 
   const getFilterUrl = ({
     c,
@@ -240,25 +260,27 @@ export default async function SearchPage({
         </div>
 
         <div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3  ">
-            {products.map((product) => (
-              <ProductItem key={product.slug} product={product} />
+          {/* Affichage des produits de recherche */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {products.map((product) => (
+            <ProductItem key={product.slug} product={product} />
+          ))}
+        </div>
+        {/* Pagination */}
+        <div className="join">
+          {products.length > 0 &&
+            Array.from(Array(pages).keys()).map((p) => (
+              <Link
+                key={p}
+                className={`join-item btn ${
+                  Number(page) === p + 1 ? 'btn-active' : ''
+                } `}
+                href={getFilterUrl({ pg: `${p + 1}` })}
+              >
+                {p + 1}
+              </Link>
             ))}
-          </div>
-          <div className="join">
-            {products.length > 0 &&
-              Array.from(Array(pages).keys()).map((p) => (
-                <Link
-                  key={p}
-                  className={`join-item btn ${
-                    Number(page) === p + 1 ? 'btn-active' : ''
-                  } `}
-                  href={getFilterUrl({ pg: `${p + 1}` })}
-                >
-                  {p + 1}
-                </Link>
-              ))}
-          </div>
+        </div>
                     
           {/* Afficher les produits recommandés */}          
           <h2>Recommended Products</h2>

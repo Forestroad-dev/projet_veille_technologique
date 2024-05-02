@@ -57,10 +57,13 @@ def recommend_products(query_data: SearchQuery):
         recommended_products = []
         for idx in similar_products_indices:
             product = {
+                #"_id": data.iloc[idx]['_id'],
+               # "slug": data.iloc[idx]['slug'],
                 "name": data.iloc[idx]['name'],
                 "category": data.iloc[idx]['category'],
                 "price": data.iloc[idx]['price'],
-                "rating": data.iloc[idx]['rating']
+                "rating": data.iloc[idx]['rating'],
+                "brand": data.iloc[idx]['brand']
             }
             recommended_products.append(product)
 
